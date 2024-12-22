@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Recorder and Analyzer</title>
+    <style>
+        /* General body styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Flex container to center the content */
+        .container {
+            display: flex;
+            height: 100vh;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Chatbot box styling */
+        .chatbot {
+            width: 400px;
+            height: 600px;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow-y: auto;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .bot-message p {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .skill-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .skill-button:hover {
+            background-color: #0056b3;
+        }
+
+        h1, h2, h3 {
+            color: #333;
+        }
+
+        #analysisResults {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            display: none;
+        }
+
+        #loadingIndicator {
+            display: none;
+            color: #007bff;
+        }
+
+        /* Button and audio element styling */
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        form {
+            margin-top: 20px;
+        }
+
+        #uploadButton {
+            background-color: #28a745;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        #uploadButton:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #uploadButton:hover:enabled {
+            background-color: #218838;
+        }
+
+        /* Style to hide initially */
+        #loadingIndicator,
+        #generatedAudio,
+        #analysisResults,
+        #audioPlayback {
+            display: none;
+        }
+
+        #question {
+            display: none;
+        }
+
+        /* Styling for the question display card */
+        #questionCard {
+            display: none;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            font-family: Arial, sans-serif;
+            color: #333;
+            text-wrap: wrap;
+            /* word-wrap: break-word; Ensures long text will wrap */
+            /* word-break: break-word; Break long words that don't fit */
+        }
+
+        #questionCard h3 {
+            margin: 0 0 10px;
+            color: #007bff;
+        }
+
+        #questionCard p {
+            font-size: 16px;
+            color: #555;
+        }
+        #topic{
+            padding-left: 0px;
+            margin-left: -10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="chatbot">
+            <h1>Lets Solve Your Queries!</h1>
+
+            <!-- Audio controls -->
+            <button id="recordButton" aria-label="Start Recording">Start Recording</button>
+            <button id="stopButton" disabled aria-label="Stop Recording">Stop Recording</button>
+
+            <h3>Recorded Audio:</h3>
+            <audio id="audioPlayback" controls></audio>
+
+            <form id="uploadForm" enctype="multipart/form-data">
+                <input type="hidden" id="audioData" name="audioData" />
+                <button type="submit" id="uploadButton" disabled aria-label="Upload and Process">Upload and Process</button>
+            </form>
+            
+            <h3>Generated Audio:</h3>
+            <audio id="generatedAudio" controls></audio>
+            
+            <!-- Question display card -->
+            <div id="questionCard" style="width: 100%;">
+                <h3>Topic:</h3>
+                <p><span id="question"></span></p>
+                <div id="topic" style="width: 100%;">
+                <ol>
+<li>If you could choose one song to play every time you walked into a room, what would you choose and why?</li>
+<li>What do you think about when you're alone in a room?</li> 
+<li>If you could have any superhero power, what would it be and why?</li>
+<li>What would you do if you were the only survivor of a plane crash?</li>
+<li>If you could eliminate one state, what would it be and why?</li>
+                </ol> 
+                </div>
+            </div>
+
+            <!-- New section for analysis results -->
+            <div id="analysisResults">
+                <h2>Analysis Results</h2>
+                <p><span id="answer"></span></p>
+                <ul>
+                    <li>Total Duration: <span id="totalDuration"></span> seconds</li>
+                    <li>Pitch Quality: <span id="meanPitch"></span> </li>
+                    <li>Volume Level: <span id="meanIntensity"></span> </li>
+                    <li>Expression Style: <span id="stressedSyllables"></span></li>
+                    <li>Confidence Indicator: <span id="fallingIntonation"></span></li>
+                    <li>Speech Speed: <span id="numberOfWords"></span></li>
+                    <li>Speaking Rate: <span id="speechRate"></span> </li>
+                    <li>Speech Tempo: <span id="fluencyTempo"></span> </li>
+                    <li>Sound Clarity: <span id="zeroCrossingRate"></span></li>
+                    <li>Energy Level: <span id="rootMeanSquareEnergy"></span></li>
+                    <li>Fluency: <span id="fluencyImprovementNeeded"></span></li>
+                </ul>
+            </div>
+
+            <div id="loadingIndicator">Processing audio, please wait...</div>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        const recordButton = document.getElementById("recordButton");
+        const stopButton = document.getElementById("stopButton");
+        const uploadButton = document.getElementById("uploadButton");
+        const audioPlayback = document.getElementById("audioPlayback");
+        const generatedAudio = document.getElementById("generatedAudio");
+        const analysisResults = document.getElementById("analysisResults");
+        const loadingIndicator = document.getElementById("loadingIndicator");
+        const questionCard = document.getElementById("questionCard");
+        const questionElement = document.getElementById("question");
+
+        recordButton.addEventListener("click", () => {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.start();
+
+                    audioChunks = [];
+                    mediaRecorder.addEventListener("dataavailable", event => {
+                        audioChunks.push(event.data);
+                    });
+
+                    mediaRecorder.addEventListener("stop", () => {
+                        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        audioPlayback.src = audioUrl;
+                        audioPlayback.style.display = "block";
+
+                        document.getElementById("audioData").value = audioUrl;
+                        uploadButton.disabled = false;
+                    });
+
+                    stopButton.disabled = false;
+                    recordButton.disabled = true;
+                })
+                .catch(err => console.error('Error accessing audio devices:', err));
+        });
+
+        stopButton.addEventListener("click", () => {
+            mediaRecorder.stop();
+            stopButton.disabled = true;
+            recordButton.disabled = false;
+        });
+
+        uploadButton.addEventListener("click", (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append("audio", new Blob(audioChunks, { type: "audio/webm" }), "audio.webm");
+
+            fetch('/process_audio', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingIndicator.style.display = "none"; 
+
+                if (data.audio_url) {
+                    generatedAudio.src = data.audio_url;
+                    generatedAudio.play();
+                    generatedAudio.style.display = "block";
+                }
+                
+                if (data.question) {
+                    questionElement.textContent = data.question;
+                    questionCard.style.display = "block"; // Ensure the question card is displayed
+                    // questionElement.style.display = "block"; // Show the question text
+                }
+
+                document.getElementById("answer").textContent = data.answer;
+                document.getElementById("totalDuration").textContent = data.metrics.total_duration.toFixed(2);
+                document.getElementById("meanPitch").textContent = `${data.metrics.mean_pitch.tag} (${data.metrics.mean_pitch.value.toFixed(2)+" Hz"})`;
+                document.getElementById("meanIntensity").textContent = `${data.metrics.mean_intensity.tag} (${data.metrics.mean_intensity.value.toFixed(2)+" dB"})`;
+                document.getElementById("stressedSyllables").textContent = `${data.metrics.stressed_syllables.tag} (${data.metrics.stressed_syllables.value})`;
+                document.getElementById("fallingIntonation").textContent = `${data.metrics.falling_intonation.tag}`;
+                document.getElementById("numberOfWords").textContent = `${data.metrics.number_of_words.tag} (${data.metrics.number_of_words.value})`;
+                document.getElementById("speechRate").textContent = `${data.metrics.speech_rate.tag} (${data.metrics.speech_rate.value.toFixed(2)+" WPM"})`;
+                document.getElementById("fluencyTempo").textContent = `${data.metrics.fluency_tempo.tag} (${data.metrics.fluency_tempo.value.toFixed(2)+" BPM"})`;
+                document.getElementById("zeroCrossingRate").textContent = `${data.metrics.zero_crossing_rate.tag} (${data.metrics.zero_crossing_rate.value.toFixed(2)})`;
+                document.getElementById("rootMeanSquareEnergy").textContent = `${data.metrics.root_mean_square_energy.tag} (${data.metrics.root_mean_square_energy.value.toFixed(2)})`;
+                document.getElementById("fluencyImprovementNeeded").textContent = `${data.metrics.fluency_improvement_needed.tag}`;
+                // document.getElementById("totalDuration").textContent = data.metrics.total_duration.toFixed(2);
+                // document.getElementById("meanPitch").textContent = data.metrics.mean_pitch.toFixed(2);
+                // document.getElementById("meanIntensity").textContent = data.metrics.mean_intensity.toFixed(2);
+                // document.getElementById("stressedSyllables").textContent = data.metrics.stressed_syllables;
+                // document.getElementById("fallingIntonation").textContent = data.metrics.falling_intonation;
+                // document.getElementById("numberOfWords").textContent = data.metrics.number_of_words;
+                // document.getElementById("speechRate").textContent = data.metrics.speech_rate.toFixed(2);
+                // document.getElementById("fluencyTempo").textContent = data.metrics.fluency_tempo.toFixed(2);
+                // document.getElementById("zeroCrossingRate").textContent = data.metrics.zero_crossing_rate.toFixed(2);
+                // document.getElementById("rootMeanSquareEnergy").textContent = data.metrics.root_mean_square_energy.toFixed(2);
+                // document.getElementById("fluencyImprovementNeeded").textContent = data.metrics.fluency_improvement_needed;
+                // document.getElementById("answer").textContent = data.answer;
+
+                // // Displaying metrics with tags
+                // document.getElementById("totalDuration").textContent = data.metrics.total_duration.toFixed(2);
+                // document.getElementById("meanPitch").textContent = `${data.metrics.mean_pitch.toFixed(2)} (${data.metrics.mean_pitch.tag})`;
+                // document.getElementById("meanIntensity").textContent = `${data.metrics.mean_intensity.toFixed(2)} (${data.metrics.mean_intensity.tag})`;
+                // document.getElementById("stressedSyllables").textContent = `${data.metrics.stressed_syllables.count} (${data.metrics.stressed_syllables.tag})`;
+                // document.getElementById("fallingIntonation").textContent = `${data.metrics.falling_intonation.value} (${data.metrics.falling_intonation.tag})`;
+                // document.getElementById("numberOfWords").textContent = `${data.metrics.number_of_words.count} (${data.metrics.number_of_words.tag})`;
+                // document.getElementById("speechRate").textContent = `${data.metrics.speech_rate.toFixed(2)} (${data.metrics.speech_rate.tag})`;
+                // document.getElementById("fluencyTempo").textContent = `${data.metrics.fluency_tempo.toFixed(2)} (${data.metrics.fluency_tempo.tag})`;
+                // document.getElementById("zeroCrossingRate").textContent = `${data.metrics.zero_crossing_rate.toFixed(2)} (${data.metrics.zero_crossing_rate.tag})`;
+                // document.getElementById("rootMeanSquareEnergy").textContent = `${data.metrics.root_mean_square_energy.toFixed(2)} (${data.metrics.root_mean_square_energy.tag})`;
+                // document.getElementById("fluencyImprovementNeeded").textContent = `${data.metrics.fluency_improvement_needed.value} (${data.metrics.fluency_improvement_needed.tag})`;
+
+
+                analysisResults.style.display = "block";
+            })
+            .catch(err => {
+                console.error('Error processing audio:', err);
+            });
+
+            loadingIndicator.style.display = "block"; 
+        });
+    </script>
+</body>
+
+</html>
